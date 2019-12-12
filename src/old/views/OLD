@@ -1,0 +1,189 @@
+import React, { Component } from 'react';
+import "./css/modal.css";
+import SetPayerForm from '../old/HAdmin/SetPayerForm';
+import createModalForm from '../old/HAdmin/CreateModalForm';
+
+
+class Transactions_OLD extends Component {
+
+
+    constructor(props) {
+        super(props);
+        this.state = {
+
+        }
+    }
+
+    render() {
+        return (
+            <div>
+                <div class="card">
+                    <h5 class="card-header">Filter Transactions</h5>
+                    <div class="card-body">
+                        <div clas="card-text">
+                            <TransactionList />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+}
+
+class TransactionList extends Component {
+
+    constructor(props) {
+        super(props);
+
+        this.modalBody = "";
+        this.showingModal = false;
+        this.state = {
+            modalData: this.modalBody,
+            showModal: this.showingModal,
+            transactions: [],
+            isLoading: true,
+            fromDate: "20/05/2019",
+            toDate: "20/05/2019",
+            settingPayer: false
+        };
+        this.handleSubmit = this.handleSubmit.bind(this);
+        this.handleFromChange = this.handleFromChange.bind(this);
+        this.handleToChange = this.handleToChange.bind(this);
+        this.handleSetPayer = this.handleSetPayer.bind(this);
+        this.handleAmendTransaction = this.handleAmendTransaction.bind(this);
+        this.handleDeleteTransaction = this.handleDeleteTransaction.bind(this);
+    }
+
+    async loadDataAndSet() {
+
+        const url = `http://localhost:8080/transactions/?from=${this.state.fromDate}&to=${this.state.toDate}`;
+        console.log(url);
+        fetch(url)
+            .then(response => response.json())
+            .then(data => this.setState({ transactions: data, isLoading: false }));
+    }
+
+    async componentDidMount() {
+        this.setState({ isLoading: true });
+        this.loadDataAndSet();
+    }
+
+    async setOwner(id, name) {
+        await fetch(`http://localhost:8080/transactions/${id}/${name}`, {
+            method: 'PUT',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        }).then(() => {
+            this.loadDataAndSet();
+        });
+    }
+
+    handleSubmit(event) {
+        this.loadDataAndSet();
+        event.preventDefault();
+    }
+
+
+    handleFromChange(event) {
+        this.setState({
+            fromDate: event.target.value,
+        });
+    }
+    handleToChange(event) {
+        this.setState({
+            toDate: event.target.value,
+        });
+    }
+
+
+    handleSetPayer(tranasctionId) { 
+        new createModalForm(this, new SetPayerForm(tranasctionId));
+    }
+
+    handleAmendTransaction(FormContent) {
+        new createModalForm(this, FormContent);
+    }
+
+    handleDeleteTransaction(even) {
+
+    }
+
+    render() {
+        const { transactions, isLoading, modalData } = this.state;
+
+        if (isLoading) {
+            return <p className="text-center">Loading....</p>
+        }
+
+        const transactionList = transactions.map(transaction => {
+            return <tr key={transaction.id}>
+                <td>
+                    {transaction.date}
+                </td>
+                <td>
+                    {transaction.description}
+                </td>
+                <td>
+                    {transaction.debit}
+                </td>
+                <td>
+                    {transaction.credit}
+                </td>
+                <td>
+                    {transaction.payments == null ? "TBA" : transaction.owner}
+                </td>
+                <td>
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Action
+                        </button>
+                        <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+                            <button className="dropdown-item" type="button" value={transaction.id} onClick={() => this.handleSetPayer(transaction.id)}>Set Payer</button>
+                            <button className="dropdown-item" type="button" value={transaction.id} onClick={() => this.handleAmendTransaction(transaction.id)}>Amend</button>
+                            <button className="dropdown-item" type="button" value={transaction.id} onClick={this.handleDeleteTransaction}>Delete</button>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        });
+
+        return (
+            <div className="table-responsive">
+                <div className="d-flex justify-content-center">
+                    <form onSubmit={this.handleSubmit}>
+                        <label>From Date</label>
+                        <input type="text" ref={(input) => this.fromDate = input} onChange={this.handleFromChange} />
+                        <label>To Date</label>
+                        <input type="text" ref={(input) => this.toDate = input} onChange={this.handleToChange} />
+                        <input type="submit" value="Submit" />
+                    </form>
+                </div>
+                <table className="table table-striped text-center border">
+                    <thead>
+                        <tr>
+                            <th>date</th>
+                            <th>description</th>
+                            <th>debit</th>
+                            <th>credit</th>
+                            <th>payment</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {transactionList}
+                    </tbody>
+                </table>
+                {modalData}
+            </div>
+        )
+
+
+    }
+}
+
+
+
+export default Transactions_OLD;
